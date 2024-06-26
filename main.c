@@ -32,7 +32,7 @@ int main(void) {
 struct MyFloat toMyFloat(float f){
     struct MyFloat xs;
     unsigned int* binary = (unsigned int *) &f;
-    xs.fraction = *binary & 0x7FFFF;       //masking the first 23 bit
+    xs.fraction = *binary & 0x7FFFFF;       //masking the first 23 bit
     xs.exponent = (*binary >>23) & 0xFF;   // masking the exponent (8 bits) after shifting it 23 times
     xs.sign = (*binary>>31) & 1;           // masking the sign (1 bit) after shifting it 31 times
     return xs;
