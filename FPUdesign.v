@@ -26,9 +26,7 @@ module FPU (
     reg [31:0] adder_in2;
     wire [31:0] adder_out;
 
-    assign F3[31] = sign_res;
-    assign F3[30:23] = exp_res;
-    assign F3[22:0] = frac_res[22:0];
+
 
     adder Add (
         .f1add(adder_in1),
@@ -36,7 +34,7 @@ module FPU (
         .out(adder_out)
     );
     
-    always @(posedge clk) begin
+    always @(*) begin
         // If F1 is NaN or F2 is zero, return F1
         if ((exp1 == 8'hFF && frac1 != 0) || (exp2 == 8'h00 && frac2 == 0)) begin
             sign_res = sign1;
@@ -63,7 +61,10 @@ module FPU (
             exp_res = adder_out[30:23];
             frac_res = {1'b0, adder_out[22:0]};
         end
-    end    
+    end 
+	assign F3[31] = sign_res;
+    assign F3[30:23] = exp_res;
+    assign F3[22:0] = frac_res[22:0];
 endmodule
 
 module adder (
@@ -90,9 +91,8 @@ module adder (
     reg sign_res;
     reg [7:0] exp_res;
     reg [24:0] frac_res;
-	assign out[31] = sign_res;
-    assign out[30:23] = exp_res;
-    assign out[22:0] = frac_res[22:0];
+	reg [22:0]temp;
+
     always @(*) begin
         sign1 = f1add[31];
         sign2 = f2add[31];
@@ -102,18 +102,20 @@ module adder (
         frac2 = {1'b1, f2add[22:0]};
         smallest = exp1 > exp2 ? frac2 : frac1;
         largest = exp1 < exp2 ? frac2 : frac1;
-		if (exp1 > exp2) begin
+		if (exp1 > exp2 || ((exp1 == exp2) && (frac1 > frac2))) begin
             smallest = frac2;
             largest = frac1;
             sign_small = sign2;
             sign_large = sign1;
         end
-        else if (exp1 < exp2) begin
+        else if (exp1 < exp2 || ((exp1 == exp2) && (frac2 > frac1))) begin
             smallest = frac1;
             largest = frac2;
             sign_small = sign1;
             sign_large = sign2;
         end
+
+
         // Find the difference between exponents
         if (exp1 >= exp2) begin
             shmt = exp1 - exp2;
@@ -140,25 +142,53 @@ module adder (
 			//frac_res = 25'h980000;
             sign_res = 0;
         end
+        else if (sign_small == 1 && sign_large == 0) begin
+            frac_res = largest - smallest;
+            sign_res = 0;
+        end
+        else if (sign_small == 0 && sign_large == 1) begin
+            frac_res = largest - smallest;
+            sign_res = 1;
+        end
+        else if (sign_small == 1 && sign_large == 1) begin
+            frac_res = smallest + largest;
+            sign_res = 1;
+        end
+
 	
 				
         // Normalization
         // If frac_res > 011111111111111111111111 (0x7FFFFF) 
-	   if (frac_res & 25'h1000000) begin
+	   while (frac_res & 25'h1000000) begin
             frac_res = frac_res >> 1;
             exp_res = exp_res + 1;
+			if (exp_res == 255) begin
+                frac_res = 0;
+            end
+			temp = frac_res[22:0];
+            if (frac_res[22:0] == 23'h3FFFFF) begin
+                frac_res = frac_res + 1;
+            end
 	   end
-	   else begin
-			while (frac_res && (frac_res & 25'h800000) == 0) begin
-				frac_res = frac_res << 1;
-				exp_res = exp_res - 1;
-			end
+	   
+		while (frac_res && (frac_res[23]) == 0) begin
+			frac_res = frac_res << 1;
+			exp_res = exp_res - 1;
+            if(exp_res == -1) begin
+                frac_res = 0;
+                exp_res = 0;
+				sign_res = 0;
+            end
 		end
+		
 		out_temp = {sign1, exp_res, frac_res[22:0]};
         
         // If frac_res < 010000000000000000000000 (0x400000)
 
     end
+	assign out[31] = sign_res;
+    assign out[30:23] = exp_res;
+    assign out[22:0] = frac_res[22:0];
 
 
 endmodule
