@@ -81,7 +81,9 @@ module adder (
     reg [23:0] frac2;
     reg [23:0] smallest;
     reg [23:0] largest;
-    reg [7:0] shmt;
+    reg [5:0] shmt;
+	reg [23:0] smallest_shifted;
+	reg [23:0] shifted_bits;
 	reg sign_small;
     reg sign_large;
     // For the outputs
@@ -109,6 +111,8 @@ module adder (
         else if (exp1 < exp2) begin
             smallest = frac1;
             largest = frac2;
+            sign_small = sign1;
+            sign_large = sign2;
         end
         // Find the difference between exponents
         if (exp1 >= exp2) begin
@@ -119,7 +123,18 @@ module adder (
             shmt = exp2 - exp1;
             exp_res = exp2;
         end
-        smallest = smallest >> shmt; // Shift right
+        //rounding hardware
+    smallest_shifted = smallest >> shmt;
+
+    //shifted bits. are they significant?
+    shifted_bits = smallest & ((1 << shmt) - 1);
+
+    //if the last shifted bit was 1 then round by adding one
+    if (shifted_bits & (1 << (shmt - 1))) begin
+        smallest_shifted = smallest_shifted + 1;
+		
+    end
+	smallest = smallest_shifted;
         if (sign1 == 0 && sign2 == 0) begin // Handle other sign cases later!!
             frac_res = smallest + largest;
 			//frac_res = 25'h980000;
