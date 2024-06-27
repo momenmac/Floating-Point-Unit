@@ -46,7 +46,10 @@ module tb_FPU;
 		clk <= 0;
 		#20;
 		F1 <= 32'h3f400000;
-		F2 <= 32'h3ee00000;
+		F2 <= 32'h3ee00000;	 
+		#300;
+		F1 <= 32'h3D99999A;
+		F2 <= 32'h3BF5C28F;
 		//F3 should be: 0x3f980000;
 		#6000 $finish;
     end
