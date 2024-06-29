@@ -37,7 +37,6 @@ int main(void) {
         printf("MyFloat Result - Sign: %u, Exponent: %u, Fraction: %u\n", result.sign, result.exponent, result.fraction);
         printf("MyFloat as float: %e\n", resultFloat);
         printf("Expected Result: %e\n", expected);
-        printf("Difference: %e\n\n", resultFloat - expected);
     }
 
     return 0;
